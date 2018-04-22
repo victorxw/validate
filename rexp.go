@@ -21,29 +21,29 @@ import (
 
 // Cache for compiled regular expressions
 var (
-	cacheMutex = &sync.Mutex{}
-	reDict     = map[string]*re.Regexp{}
+	reDict = sync.Map{}
 )
 
 func compileRegexp(pattern string) (*re.Regexp, error) {
 	// Save repeated regexp compilation
-	if reDict[pattern] != nil {
-		return reDict[pattern], nil
+	if reg, ok := reDict.Load(pattern); ok {
+		return reg.(*re.Regexp), nil
 	}
-	var err error
-	cacheMutex.Lock()
-	reDict[pattern], err = re.Compile(pattern)
-	cacheMutex.Unlock()
-	return reDict[pattern], err
+
+	patternCompiled, err := re.Compile(pattern)
+	if err == nil {
+		reDict.Store(pattern, patternCompiled)
+	}
+	return patternCompiled, err
 }
 
 func mustCompileRegexp(pattern string) *re.Regexp {
 	// Save repeated regexp compilation, with panic on error
-	if reDict[pattern] != nil {
-		return reDict[pattern]
+	if reg, ok := reDict.Load(pattern); ok {
+		return reg.(*re.Regexp)
 	}
-	defer cacheMutex.Unlock()
-	cacheMutex.Lock()
-	reDict[pattern] = re.MustCompile(pattern)
-	return reDict[pattern]
+
+	patternCompiled := re.MustCompile(pattern)
+	reDict.Store(pattern, patternCompiled)
+	return patternCompiled
 }

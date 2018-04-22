@@ -57,3 +57,48 @@ func Test_mustCompileRegexp(t *testing.T) {
 
 	assert.Panics(t, testPanic)
 }
+
+func TestRace_compileRegexp(t *testing.T) {
+	vrex := new(re.Regexp)
+
+	patterns := []string{
+		".*TestRegexp1.*",
+		".*TestRegexp2.*",
+		".*TestRegexp3.*",
+		".*TestRegexp1.*",
+		".*TestRegexp2.*",
+	}
+
+	comp := func(pattern string) {
+		rex, err := compileRegexp(pattern)
+		assert.NoError(t, err)
+		assert.NotNil(t, rex)
+		assert.IsType(t, vrex, rex)
+	}
+
+	for _, v := range patterns {
+		go comp(v)
+	}
+}
+
+func TestRace_mustCompileRegexp(t *testing.T) {
+	vrex := new(re.Regexp)
+
+	patterns := []string{
+		".*TestRegexp1.*",
+		".*TestRegexp2.*",
+		".*TestRegexp3.*",
+		".*TestRegexp1.*",
+		".*TestRegexp2.*",
+	}
+
+	comp := func(pattern string) {
+		rex := mustCompileRegexp(pattern)
+		assert.NotNil(t, rex)
+		assert.IsType(t, vrex, rex)
+	}
+
+	for _, v := range patterns {
+		go comp(v)
+	}
+}
